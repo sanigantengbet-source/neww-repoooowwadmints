@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Tool, Category, ToolStatus } from '@/types';
 import DynamicIcon from '@/components/shared/DynamicIcon';
+import { sanitizeSlug } from '@/lib/validation';
 import {
   Save,
   ArrowLeft,
@@ -19,6 +20,14 @@ interface ToolFormProps {
   initialData?: Tool;
   isEdit?: boolean;
 }
+
+const FALLBACK_CATEGORIES: Category[] = [
+  { id: 'developer', name: 'Developer', description: 'Developer tools', icon: 'Code2' },
+  { id: 'security', name: 'Security & Identity', description: 'Security tools', icon: 'ShieldCheck' },
+  { id: 'text', name: 'Text & Content', description: 'Text tools', icon: 'Type' },
+  { id: 'generator', name: 'Generators', description: 'Generator tools', icon: 'QrCode' },
+  { id: 'utilities', name: 'General Utilities', description: 'Utility tools', icon: 'Wrench' },
+];
 
 const COMMON_ICONS = [
   'Code',
@@ -43,7 +52,7 @@ const COMMON_ICONS = [
 
 export default function ToolForm({ initialData, isEdit }: ToolFormProps) {
   const router = useRouter();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(FALLBACK_CATEGORIES);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successCommit, setSuccessCommit] = useState<string | null>(null);
@@ -81,24 +90,21 @@ export default function ToolForm({ initialData, isEdit }: ToolFormProps) {
     fetch('/api/admin/categories')
       .then((res) => res.json())
       .then((data) => {
-        if (data.categories) {
+        if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
           setCategories(data.categories);
-          if (!initialData && data.categories.length > 0) {
+          if (!initialData && !form.category) {
             setForm((prev) => ({ ...prev, category: data.categories[0].id }));
           }
         }
       })
       .catch(() => {});
-  }, [initialData]);
+  }, [initialData, form.category]);
 
   const handleNameChange = (val: string) => {
     setForm((prev) => {
       // Auto-suggest slug on new tools if slug hasn't been manually customized
       const autoSlug = !isEdit
-        ? val
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '')
+        ? sanitizeSlug(val)
         : prev.slug;
       return { ...prev, name: val, slug: autoSlug };
     });
@@ -110,12 +116,16 @@ export default function ToolForm({ initialData, isEdit }: ToolFormProps) {
     setSuccessCommit(null);
     setSaving(true);
 
+    const cleanSlug = sanitizeSlug(form.slug || form.name) || `tool-${Date.now().toString(36)}`;
+    const computedRoute = `/tools/${cleanSlug}`;
+
     const payload = {
-      id: form.id || undefined,
+      id: form.id ? form.id.trim() : cleanSlug,
       name: form.name.trim(),
-      slug: form.slug.trim(),
+      slug: cleanSlug,
+      route: computedRoute,
       description: form.description.trim(),
-      category: form.category,
+      category: form.category || 'developer',
       status: form.status,
       icon: form.icon.trim() || 'Code',
       tags: form.tags
@@ -124,8 +134,8 @@ export default function ToolForm({ initialData, isEdit }: ToolFormProps) {
         .filter(Boolean),
       featured: form.featured,
       popular: form.popular,
-      author: form.author.trim(),
-      version: form.version.trim(),
+      author: form.author.trim() || 'SANN Team',
+      version: form.version.trim() || '1.0.0',
     };
 
     try {
@@ -135,8 +145,14 @@ export default function ToolForm({ initialData, isEdit }: ToolFormProps) {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (data.validationErrors && typeof data.validationErrors === 'object') {
+          const fieldMsgs = Object.entries(data.validationErrors)
+            .map(([field, msg]) => `${field.toUpperCase()}: ${msg}`)
+            .join(' | ');
+          throw new Error(`Validation failed: ${fieldMsgs}`);
+        }
         throw new Error(data.error || 'Failed to save tool catalog');
       }
 
@@ -239,7 +255,7 @@ export default function ToolForm({ initialData, isEdit }: ToolFormProps) {
               className="w-full bg-zinc-900 border border-zinc-800 text-zinc-200 font-mono text-xs sm:text-sm px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-emerald-500/50"
             />
             <span className="text-[11px] text-zinc-500 font-mono mt-1 block">
-              Route: /tools/{form.slug || 'your-slug'}
+              Route: /tools/{sanitizeSlug(form.slug || form.name || 'your-slug')}
             </span>
           </div>
         </div>
