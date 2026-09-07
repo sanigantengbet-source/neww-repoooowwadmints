@@ -5,16 +5,53 @@ import type { Category } from '@/types';
 
 const CATEGORIES_FILE_PATH = CATEGORIES_PATH;
 
+export const DEFAULT_CATEGORIES: Category[] = [
+  {
+    id: 'developer',
+    name: 'Developer',
+    description: 'Essential formatters, encoders, and converters for web developers.',
+    icon: 'Code2',
+  },
+  {
+    id: 'security',
+    name: 'Security & Identity',
+    description: 'Cryptographic tokens, hash helpers, secure passwords, and UUIDs.',
+    icon: 'ShieldCheck',
+  },
+  {
+    id: 'text',
+    name: 'Text & Content',
+    description: 'String manipulation, text analysis, case transforms, and slugification.',
+    icon: 'Type',
+  },
+  {
+    id: 'generator',
+    name: 'Generators',
+    description: 'Fast browser generators for QR codes, random strings, and keys.',
+    icon: 'QrCode',
+  },
+  {
+    id: 'utilities',
+    name: 'General Utilities',
+    description: 'Everyday time, unit, and color transformation tools.',
+    icon: 'Wrench',
+  },
+];
+
 /**
  * Retrieves all categories.
  */
 export async function getAllCategories(): Promise<Category[]> {
   try {
     const file = await getRepositoryFile(CATEGORIES_FILE_PATH);
-    return parseJSONFile<Category[]>(file.content, []);
+    const parsed = parseJSONFile<Category[]>(file.content, []);
+    if (parsed && parsed.length > 0) {
+      return parsed;
+    }
+    return DEFAULT_CATEGORIES;
   } catch (err) {
-    console.error('Error reading categories:', err);
-    return [];
+    console.error('Error reading categories, using defaults:', err);
+    return DEFAULT_CATEGORIES;
   }
 }
 
