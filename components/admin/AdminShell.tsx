@@ -41,8 +41,8 @@ export default function AdminShell({ children }: AdminShellProps) {
       .then((res) => res.json())
       .then((data) => {
         if (!isMounted) return;
-        if (data.authenticated && data.session) {
-          setSession(data.session);
+        if (data.authenticated) {
+          setSession(data.session || { username: 'admin', role: 'admin', expiresAt: 0 });
         } else {
           router.replace('/admin/login');
         }
@@ -169,21 +169,12 @@ export default function AdminShell({ children }: AdminShellProps) {
           {/* User badge */}
           {session && (
             <div className="flex items-center gap-2.5 p-2 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-              {session.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={session.avatarUrl}
-                  alt={session.username}
-                  className="w-7 h-7 rounded-full border border-zinc-700"
-                />
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-mono">
-                  {session.username[0]?.toUpperCase()}
-                </div>
-              )}
+              <div className="w-7 h-7 rounded-full bg-emerald-950/80 border border-emerald-800/80 flex items-center justify-center text-emerald-400">
+                <ShieldCheck className="w-3.5 h-3.5" />
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-zinc-200 truncate">
-                  @{session.username}
+                  Admin Panel
                 </p>
                 <span className="text-[10px] text-emerald-400 font-mono">
                   Authorized Admin
