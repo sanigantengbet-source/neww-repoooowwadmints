@@ -1,0 +1,6 @@
+{
+  "name": "SANN TOOLS",
+  "description": "Useful tools. One simple place. Fast, simple and privacy-friendly utilities for developers, creators and everyday tasks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
