@@ -2,14 +2,15 @@ import fs from 'fs/promises';
 import path from 'path';
 import type { GitHubFileResponse } from '@/types';
 
-// Server-side only GitHub API client
-// GitHub token is strictly kept server-side and never forwarded to the browser.
+// Static constants for repository and data paths
 export const GITHUB_REPO = 'sann-tools';
 export const GITHUB_BRANCH = 'main';
 export const TOOLS_PATH = 'data/tools.json';
 export const CATEGORIES_PATH = 'data/categories.json';
 export const SETTINGS_PATH = 'data/settings.json';
 
+// Server-side only GitHub configuration
+// GITHUB_TOKEN is strictly kept server-side and never forwarded to the browser or console.
 export function getGitHubConfig() {
   const username = (process.env.GITHUB_USERNAME || '').trim();
   const token = (process.env.GITHUB_TOKEN || '').trim();
@@ -171,6 +172,15 @@ export async function updateFile(
   }
 
   const result = await response.json();
+
+  // Sync to local filesystem if available for immediate cache update
+  try {
+    const localPath = path.join(process.cwd(), filePath);
+    await fs.writeFile(localPath, content, 'utf-8');
+  } catch {
+    // Ignore in read-only environments
+  }
+
   return {
     success: true,
     commitSha: result.commit?.sha || 'committed',
