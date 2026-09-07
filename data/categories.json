@@ -1,0 +1,32 @@
+[
+  {
+    "id": "developer",
+    "name": "Developer",
+    "description": "Essential formatters, encoders, and converters for web developers.",
+    "icon": "Code2"
+  },
+  {
+    "id": "security",
+    "name": "Security & Identity",
+    "description": "Cryptographic tokens, hash helpers, secure passwords, and UUIDs.",
+    "icon": "ShieldCheck"
+  },
+  {
+    "id": "text",
+    "name": "Text & Content",
+    "description": "String manipulation, text analysis, case transforms, and slugification.",
+    "icon": "Type"
+  },
+  {
+    "id": "generator",
+    "name": "Generators",
+    "description": "Fast browser generators for QR codes, random strings, and keys.",
+    "icon": "QrCode"
+  },
+  {
+    "id": "utilities",
+    "name": "General Utilities",
+    "description": "Everyday time, unit, and color transformation tools.",
+    "icon": "Wrench"
+  }
+]
