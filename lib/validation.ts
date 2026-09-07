@@ -6,6 +6,7 @@ export interface ValidationResult {
 }
 
 export function sanitizeSlug(input: string): string {
+  if (!input) return '';
   return input
     .toLowerCase()
     .trim()
@@ -23,66 +24,69 @@ export function validateTool(
 ): ValidationResult {
   const errors: Record<string, string> = {};
 
-  if (!tool.name || tool.name.trim().length === 0) {
+  // Tool name
+  const name = (tool.name || '').trim();
+  if (!name) {
     errors.name = 'Tool name is required.';
-  } else if (tool.name.length > 80) {
-    errors.name = 'Tool name must not exceed 80 characters.';
+  } else if (name.length > 100) {
+    errors.name = 'Tool name must not exceed 100 characters.';
   }
 
-  if (!tool.slug || tool.slug.trim().length === 0) {
-    errors.slug = 'Slug is required.';
+  // Slug
+  const rawSlug = (tool.slug || '').trim();
+  const cleanSlug = sanitizeSlug(rawSlug || name);
+  if (!cleanSlug) {
+    errors.slug = 'Valid slug or name is required.';
   } else {
-    const cleanSlug = sanitizeSlug(tool.slug);
-    if (cleanSlug !== tool.slug) {
-      errors.slug = 'Slug must only contain lowercase letters, numbers, and hyphens.';
-    } else {
-      const duplicateSlug = existingTools.find(
-        (t) => t.slug === tool.slug && (!isEdit || t.id !== tool.id)
-      );
-      if (duplicateSlug) {
-        errors.slug = `The slug "${tool.slug}" is already in use by another tool.`;
-      }
+    const duplicateSlug = existingTools.find(
+      (t) => (t.slug === cleanSlug || t.slug === rawSlug) && (!isEdit || t.id !== tool.id)
+    );
+    if (duplicateSlug) {
+      errors.slug = `The slug "${cleanSlug}" is already in use by another tool.`;
     }
   }
 
-  if (!tool.description || tool.description.trim().length === 0) {
+  // Description
+  const description = (tool.description || '').trim();
+  if (!description) {
     errors.description = 'Short description is required.';
-  } else if (tool.description.length > 200) {
-    errors.description = 'Description must not exceed 200 characters.';
+  } else if (description.length > 300) {
+    errors.description = 'Description must not exceed 300 characters.';
   }
 
-  if (!tool.category || tool.category.trim().length === 0) {
+  // Category
+  const category = (tool.category || '').trim();
+  if (!category) {
     errors.category = 'Category is required.';
   }
 
-  if (!tool.route || tool.route.trim().length === 0) {
-    errors.route = 'Route path is required (e.g. /tools/my-tool).';
+  // Route
+  const route = (tool.route || `/tools/${cleanSlug}`).trim();
+  if (!route.startsWith('/')) {
+    errors.route = 'Route path must start with a leading slash ("/").';
   } else {
-    if (!tool.route.startsWith('/')) {
-      errors.route = 'Route path must start with a leading slash ("/").';
-    }
     const duplicateRoute = existingTools.find(
-      (t) => t.route === tool.route && (!isEdit || t.id !== tool.id)
+      (t) => t.route === route && (!isEdit || t.id !== tool.id)
     );
     if (duplicateRoute) {
-      errors.route = `The route "${tool.route}" is already used by another tool.`;
+      errors.route = `The route "${route}" is already used by another tool.`;
     }
   }
 
-  if (!isEdit) {
-    if (!tool.id || tool.id.trim().length === 0) {
-      errors.id = 'ID is required.';
-    } else {
-      const duplicateId = existingTools.find((t) => t.id === tool.id);
-      if (duplicateId) {
-        errors.id = `The tool ID "${tool.id}" already exists.`;
-      }
+  // ID validation
+  const id = (tool.id || cleanSlug).trim();
+  if (!id) {
+    errors.id = 'ID is required.';
+  } else if (!isEdit) {
+    const duplicateId = existingTools.find((t) => t.id === id);
+    if (duplicateId) {
+      errors.id = `The tool ID "${id}" already exists.`;
     }
   }
 
-  const validStatuses: ToolStatus[] = ['active', 'draft', 'disabled'];
+  const validStatuses: ToolStatus[] = ['active', 'draft', 'disabled', 'deprecated'];
   if (tool.status && !validStatuses.includes(tool.status as ToolStatus)) {
-    errors.status = 'Invalid status. Must be active, draft, or disabled.';
+    errors.status = 'Invalid status. Must be active, draft, disabled, or deprecated.';
   }
 
   return {
